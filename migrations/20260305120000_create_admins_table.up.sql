@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS `admins` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `username` VARCHAR(50) NOT NULL,
+    `password` VARCHAR(255) NOT NULL,
+    `real_name` VARCHAR(50) NOT NULL DEFAULT '',
+    `email` VARCHAR(100) NOT NULL DEFAULT '',
+    `phone` VARCHAR(20) NOT NULL DEFAULT '',
+    `role` TINYINT NOT NULL DEFAULT 2 COMMENT '1=超级管理员, 2=普通管理员',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '0=禁用, 1=启用',
+    `last_login_at` DATETIME NULL DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_username` (`username`),
+    UNIQUE KEY `uk_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
