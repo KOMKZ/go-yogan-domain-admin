@@ -23,8 +23,8 @@ type CreateAdminInput struct {
 	RealName string
 	Email    string
 	Phone    string
-	Role     int8
-	Status   int8
+	Role     *int8
+	Status   *int8
 }
 
 type UpdateAdminInput struct {
@@ -67,13 +67,13 @@ func (s *AdminService) Create(ctx context.Context, input CreateAdminInput) (*mod
 		return nil, err
 	}
 
-	role := input.Role
-	if role == 0 {
-		role = 2
+	var role int8 = 2
+	if input.Role != nil {
+		role = *input.Role
 	}
-	status := input.Status
-	if status == 0 {
-		status = 1
+	var status int8 = 1
+	if input.Status != nil {
+		status = *input.Status
 	}
 
 	admin := &model.Admin{

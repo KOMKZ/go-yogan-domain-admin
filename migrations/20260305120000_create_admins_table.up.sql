@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
     `username` VARCHAR(50) NOT NULL,
     `password` VARCHAR(255) NOT NULL,
     `real_name` VARCHAR(50) NOT NULL DEFAULT '',
-    `email` VARCHAR(100) NOT NULL DEFAULT '',
+    `email` VARCHAR(100) NULL DEFAULT NULL,
     `phone` VARCHAR(20) NOT NULL DEFAULT '',
     `role` TINYINT NOT NULL DEFAULT 2 COMMENT '1=超级管理员, 2=普通管理员',
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT '0=禁用, 1=启用',
