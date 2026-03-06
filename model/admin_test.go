@@ -95,3 +95,26 @@ func TestAdmin_GetPasswordHash_Empty(t *testing.T) {
 		t.Errorf("GetPasswordHash() = %q, want empty", got)
 	}
 }
+
+func TestAdmin_GetAvatarURL(t *testing.T) {
+	baseURL := "/api/admin/files/storage"
+	tests := []struct {
+		name            string
+		avatar          string
+		avatarStorageID string
+		want            string
+	}{
+		{"explicit avatar URL", "https://cdn.example.com/avatar.jpg", "", "https://cdn.example.com/avatar.jpg"},
+		{"derived from storage ID", "", "local:avatar@abc123.jpg", "/api/admin/files/storage/local:avatar@abc123.jpg"},
+		{"avatar takes priority over storage ID", "https://cdn.example.com/a.jpg", "local:avatar@b.jpg", "https://cdn.example.com/a.jpg"},
+		{"both empty returns empty", "", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &Admin{Avatar: tt.avatar, AvatarStorageID: tt.avatarStorageID}
+			if got := a.GetAvatarURL(baseURL); got != tt.want {
+				t.Errorf("GetAvatarURL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

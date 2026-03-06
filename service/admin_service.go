@@ -18,21 +18,25 @@ func NewAdminService(repo repository.AdminRepository) *AdminService {
 }
 
 type CreateAdminInput struct {
-	Username string
-	Password string
-	RealName string
-	Email    string
-	Phone    string
-	Role     *int8
-	Status   *int8
+	Username        string
+	Password        string
+	RealName        string
+	Email           string
+	Phone           string
+	Avatar          string
+	AvatarStorageID string
+	Role            *int8
+	Status          *int8
 }
 
 type UpdateAdminInput struct {
-	Username *string
-	RealName *string
-	Email    *string
-	Phone    *string
-	Status   *int8
+	Username        *string
+	RealName        *string
+	Email           *string
+	Phone           *string
+	Avatar          *string
+	AvatarStorageID *string
+	Status          *int8
 }
 
 type PageResult struct {
@@ -77,13 +81,15 @@ func (s *AdminService) Create(ctx context.Context, input CreateAdminInput) (*mod
 	}
 
 	admin := &model.Admin{
-		Username: input.Username,
-		Password: string(passwordHash),
-		RealName: input.RealName,
-		Email:    input.Email,
-		Phone:    input.Phone,
-		Role:     role,
-		Status:   status,
+		Username:        input.Username,
+		Password:        string(passwordHash),
+		RealName:        input.RealName,
+		Email:           input.Email,
+		Phone:           input.Phone,
+		Avatar:          input.Avatar,
+		AvatarStorageID: input.AvatarStorageID,
+		Role:            role,
+		Status:          status,
 	}
 
 	if err := s.repo.Create(ctx, admin); err != nil {
@@ -138,6 +144,12 @@ func (s *AdminService) Update(ctx context.Context, id uint, input UpdateAdminInp
 	}
 	if input.Phone != nil {
 		admin.Phone = *input.Phone
+	}
+	if input.Avatar != nil {
+		admin.Avatar = *input.Avatar
+	}
+	if input.AvatarStorageID != nil {
+		admin.AvatarStorageID = *input.AvatarStorageID
 	}
 	if input.Status != nil {
 		admin.Status = *input.Status

@@ -5,17 +5,19 @@ import (
 )
 
 type Admin struct {
-	ID          uint       `gorm:"primarykey" json:"id"`
-	Username    string     `gorm:"size:50;uniqueIndex;not null" json:"username"`
-	Password    string     `gorm:"size:255;not null" json:"-"`
-	RealName    string     `gorm:"size:50" json:"real_name"`
-	Email       string     `gorm:"size:100;uniqueIndex" json:"email"`
-	Phone       string     `gorm:"size:20" json:"phone"`
-	Role        int8       `gorm:"default:2" json:"role"`   // 1=超级管理员, 2=普通管理员
-	Status      int8       `gorm:"default:1" json:"status"` // 0=禁用, 1=启用
-	LastLoginAt *time.Time `json:"last_login_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID              uint       `gorm:"primarykey" json:"id"`
+	Username        string     `gorm:"size:50;uniqueIndex;not null" json:"username"`
+	Password        string     `gorm:"size:255;not null" json:"-"`
+	RealName        string     `gorm:"size:50" json:"real_name"`
+	Email           string     `gorm:"size:100;uniqueIndex" json:"email"`
+	Phone           string     `gorm:"size:20" json:"phone"`
+	Avatar          string     `gorm:"size:500" json:"avatar"`
+	AvatarStorageID string     `gorm:"size:255;column:avatar_storage_id" json:"avatar_storage_id"`
+	Role            int8       `gorm:"default:2" json:"role"`   // 1=超级管理员, 2=普通管理员
+	Status          int8       `gorm:"default:1" json:"status"` // 0=禁用, 1=启用
+	LastLoginAt     *time.Time `json:"last_login_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 func (Admin) TableName() string {
@@ -42,4 +44,16 @@ func (a *Admin) GetEmail() string {
 
 func (a *Admin) GetPasswordHash() string {
 	return a.Password
+}
+
+// GetAvatarURL returns the display URL for the avatar.
+// Priority: explicit Avatar URL > derived from AvatarStorageID > empty.
+func (a *Admin) GetAvatarURL(storageBaseURL string) string {
+	if a.Avatar != "" {
+		return a.Avatar
+	}
+	if a.AvatarStorageID != "" {
+		return storageBaseURL + "/" + a.AvatarStorageID
+	}
+	return ""
 }
