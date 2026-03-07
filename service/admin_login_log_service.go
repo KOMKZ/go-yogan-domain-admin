@@ -7,6 +7,17 @@ import (
 	"github.com/KOMKZ/go-yogan-domain-admin/repository"
 )
 
+type PaginateLoginLogInput struct {
+	UserID *uint
+}
+
+type CreateLoginLogInput struct {
+	UserID    uint
+	Username  string
+	IP        string
+	UserAgent string
+}
+
 type AdminLoginLogService struct {
 	repo repository.AdminLoginLogRepository
 }
@@ -15,16 +26,25 @@ func NewAdminLoginLogService(repo repository.AdminLoginLogRepository) *AdminLogi
 	return &AdminLoginLogService{repo: repo}
 }
 
-func (s *AdminLoginLogService) Create(ctx context.Context, log *model.AdminLoginLog) error {
+func (s *AdminLoginLogService) Create(ctx context.Context, input CreateLoginLogInput) error {
+	log := &model.AdminLoginLog{
+		UserID:    input.UserID,
+		Username:  input.Username,
+		IP:        input.IP,
+		UserAgent: input.UserAgent,
+	}
 	return s.repo.Create(ctx, log)
 }
 
-func (s *AdminLoginLogService) Paginate(ctx context.Context, page, pageSize int, filters repository.LoginLogFilters) ([]model.AdminLoginLog, int64, error) {
+func (s *AdminLoginLogService) Paginate(ctx context.Context, page, pageSize int, input PaginateLoginLogInput) ([]model.AdminLoginLog, int64, error) {
 	if page <= 0 {
 		page = 1
 	}
 	if pageSize <= 0 || pageSize > 100 {
 		pageSize = 10
+	}
+	filters := repository.LoginLogFilters{
+		UserID: input.UserID,
 	}
 	return s.repo.Paginate(ctx, page, pageSize, filters)
 }

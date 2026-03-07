@@ -10,6 +10,8 @@ import (
 	"github.com/KOMKZ/go-yogan-domain-admin/repository"
 )
 
+var _ repository.AdminLoginLogRepository = (*mockLoginLogRepo)(nil)
+
 type mockLoginLogRepo struct {
 	mu          sync.RWMutex
 	logs        []*model.AdminLoginLog
@@ -83,24 +85,21 @@ func (m *mockLoginLogRepo) FindByUserID(ctx context.Context, userID uint, limit 
 	return result, nil
 }
 
-var _ repository.AdminLoginLogRepository = (*mockLoginLogRepo)(nil)
-
 func TestAdminLoginLogService_Create_Success(t *testing.T) {
 	repo := newMockLoginLogRepo()
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	log := &model.AdminLoginLog{
-		UserID:   1,
-		Username: "admin",
-		IP:       "127.0.0.1",
+	if err := svc.Create(ctx, CreateLoginLogInput{
+		UserID:    1,
+		Username:  "admin",
+		IP:        "127.0.0.1",
 		UserAgent: "test",
-	}
-	if err := svc.Create(ctx, log); err != nil {
+	}); err != nil {
 		t.Fatalf("Create() err = %v", err)
 	}
-	if log.ID == 0 {
-		t.Error("Create should set ID")
+	if len(repo.logs) != 1 {
+		t.Error("Create should add log")
 	}
 }
 
@@ -110,7 +109,7 @@ func TestAdminLoginLogService_Create_RepoErr(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	err := svc.Create(ctx, &model.AdminLoginLog{UserID: 1, Username: "a", IP: "x"})
+	err := svc.Create(ctx, CreateLoginLogInput{UserID: 1, Username: "a", IP: "x"})
 	if err == nil || err.Error() != "db error" {
 		t.Errorf("err = %v, want db error", err)
 	}
@@ -121,10 +120,10 @@ func TestAdminLoginLogService_Paginate_Success(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	_ = svc.Create(ctx, &model.AdminLoginLog{UserID: 1, Username: "a", IP: "1"})
-	_ = svc.Create(ctx, &model.AdminLoginLog{UserID: 1, Username: "a", IP: "2"})
+	_ = svc.Create(ctx, CreateLoginLogInput{UserID: 1, Username: "a", IP: "1"})
+	_ = svc.Create(ctx, CreateLoginLogInput{UserID: 1, Username: "a", IP: "2"})
 
-	logs, total, err := svc.Paginate(ctx, 1, 10, repository.LoginLogFilters{})
+	logs, total, err := svc.Paginate(ctx, 1, 10, PaginateLoginLogInput{})
 	if err != nil {
 		t.Fatalf("Paginate() err = %v", err)
 	}
@@ -141,7 +140,7 @@ func TestAdminLoginLogService_Paginate_NormalizePage(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	_, _, err := svc.Paginate(ctx, 0, 10, repository.LoginLogFilters{})
+	_, _, err := svc.Paginate(ctx, 0, 10, PaginateLoginLogInput{})
 	if err != nil {
 		t.Fatalf("Paginate() err = %v", err)
 	}
@@ -153,7 +152,7 @@ func TestAdminLoginLogService_Paginate_NormalizePageSize(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	_, _, err := svc.Paginate(ctx, 1, 0, repository.LoginLogFilters{})
+	_, _, err := svc.Paginate(ctx, 1, 0, PaginateLoginLogInput{})
 	if err != nil {
 		t.Fatalf("Paginate() err = %v", err)
 	}
@@ -164,7 +163,7 @@ func TestAdminLoginLogService_Paginate_PageSizeOver100(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	_, _, err := svc.Paginate(ctx, 1, 200, repository.LoginLogFilters{})
+	_, _, err := svc.Paginate(ctx, 1, 200, PaginateLoginLogInput{})
 	if err != nil {
 		t.Fatalf("Paginate() err = %v", err)
 	}
@@ -175,11 +174,11 @@ func TestAdminLoginLogService_Paginate_WithUserIDFilter(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	_ = svc.Create(ctx, &model.AdminLoginLog{UserID: 1, Username: "a", IP: "1"})
-	_ = svc.Create(ctx, &model.AdminLoginLog{UserID: 2, Username: "b", IP: "2"})
+	_ = svc.Create(ctx, CreateLoginLogInput{UserID: 1, Username: "a", IP: "1"})
+	_ = svc.Create(ctx, CreateLoginLogInput{UserID: 2, Username: "b", IP: "2"})
 
 	uid := uint(1)
-	logs, total, err := svc.Paginate(ctx, 1, 10, repository.LoginLogFilters{UserID: &uid})
+	logs, total, err := svc.Paginate(ctx, 1, 10, PaginateLoginLogInput{UserID: &uid})
 	if err != nil {
 		t.Fatalf("Paginate() err = %v", err)
 	}
@@ -197,7 +196,7 @@ func TestAdminLoginLogService_Paginate_RepoErr(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	_, _, err := svc.Paginate(ctx, 1, 10, repository.LoginLogFilters{})
+	_, _, err := svc.Paginate(ctx, 1, 10, PaginateLoginLogInput{})
 	if err == nil || err.Error() != "paginate failed" {
 		t.Errorf("err = %v, want paginate failed", err)
 	}
@@ -208,8 +207,8 @@ func TestAdminLoginLogService_FindByUserID_Success(t *testing.T) {
 	svc := NewAdminLoginLogService(repo)
 	ctx := context.Background()
 
-	_ = svc.Create(ctx, &model.AdminLoginLog{UserID: 1, Username: "a", IP: "1"})
-	_ = svc.Create(ctx, &model.AdminLoginLog{UserID: 1, Username: "a", IP: "2"})
+	_ = svc.Create(ctx, CreateLoginLogInput{UserID: 1, Username: "a", IP: "1"})
+	_ = svc.Create(ctx, CreateLoginLogInput{UserID: 1, Username: "a", IP: "2"})
 
 	logs, err := svc.FindByUserID(ctx, 1, 5)
 	if err != nil {
