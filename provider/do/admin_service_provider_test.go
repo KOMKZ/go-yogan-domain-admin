@@ -1,4 +1,4 @@
-package providerdo
+package do
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/KOMKZ/go-yogan-domain-admin/model"
 	"github.com/KOMKZ/go-yogan-domain-admin/repository"
+	frameworkauth "github.com/KOMKZ/go-yogan-framework/auth"
+	"github.com/KOMKZ/go-yogan-framework/logger"
 	"github.com/samber/do/v2"
 )
 
@@ -39,6 +41,10 @@ func TestProvideAdminService(t *testing.T) {
 	do.Provide(injector, func(i do.Injector) (repository.AdminRepository, error) {
 		return stubAdminRepo{}, nil
 	})
+	do.Provide(injector, func(i do.Injector) (*frameworkauth.PasswordService, error) {
+		return frameworkauth.NewPasswordService(frameworkauth.PasswordPolicy{MinLength: 6, MaxLength: 128}, 4), nil
+	})
+	do.ProvideNamedValue(injector, "admin", logger.GetLogger("admin_test"))
 
 	svc, err := ProvideAdminService(injector)
 	if err != nil {

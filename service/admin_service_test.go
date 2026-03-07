@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/KOMKZ/go-yogan-framework/logger"
 	domainerrors "github.com/KOMKZ/go-yogan-domain-admin/errors"
 	"github.com/KOMKZ/go-yogan-domain-admin/model"
 	"github.com/KOMKZ/go-yogan-domain-admin/repository"
@@ -207,11 +208,21 @@ func copyAdmin(a *model.Admin) *model.Admin {
 	return &cp
 }
 
+type mockPasswordHasher struct{}
+
+func (m *mockPasswordHasher) HashPassword(password string) (string, error) {
+	return "hashed_" + password, nil
+}
+
+func newTestAdminService(repo repository.AdminRepository) *AdminService {
+	return NewAdminService(repo, &mockPasswordHasher{}, logger.GetLogger("admin_test"))
+}
+
 func int8Ptr(v int8) *int8 { return &v }
 
 func TestAdminService_Create_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	admin, err := svc.Create(ctx, CreateAdminInput{
@@ -254,7 +265,7 @@ func TestAdminService_Create_Success(t *testing.T) {
 
 func TestAdminService_Create_DefaultRoleAndStatus(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	admin, err := svc.Create(ctx, CreateAdminInput{
@@ -274,7 +285,7 @@ func TestAdminService_Create_DefaultRoleAndStatus(t *testing.T) {
 
 func TestAdminService_Create_ExplicitZeroStatus(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	admin, err := svc.Create(ctx, CreateAdminInput{
@@ -292,7 +303,7 @@ func TestAdminService_Create_ExplicitZeroStatus(t *testing.T) {
 
 func TestAdminService_Create_ExplicitRole(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	admin, err := svc.Create(ctx, CreateAdminInput{
@@ -310,7 +321,7 @@ func TestAdminService_Create_ExplicitRole(t *testing.T) {
 
 func TestAdminService_Create_UsernameExists(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, _ = svc.Create(ctx, CreateAdminInput{Username: "dup", Password: "pw"})
@@ -322,7 +333,7 @@ func TestAdminService_Create_UsernameExists(t *testing.T) {
 
 func TestAdminService_Create_EmailExists(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, _ = svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw", Email: "same@x.com"})
@@ -334,7 +345,7 @@ func TestAdminService_Create_EmailExists(t *testing.T) {
 
 func TestAdminService_Create_EmptyEmailNoConflict(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, err1 := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw", Email: ""})
@@ -347,7 +358,7 @@ func TestAdminService_Create_EmptyEmailNoConflict(t *testing.T) {
 func TestAdminService_Create_RepoCreateErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.createErr = errors.New("db error")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, err := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw"})
@@ -359,7 +370,7 @@ func TestAdminService_Create_RepoCreateErr(t *testing.T) {
 func TestAdminService_Create_FindByUsernameErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.findByUsernameErr = errors.New("db lookup failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, err := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw"})
@@ -371,7 +382,7 @@ func TestAdminService_Create_FindByUsernameErr(t *testing.T) {
 func TestAdminService_Create_FindByEmailErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.findByEmailErr = errors.New("email lookup failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, err := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw", Email: "a@b.com"})
@@ -382,7 +393,7 @@ func TestAdminService_Create_FindByEmailErr(t *testing.T) {
 
 func TestAdminService_GetByID_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	created, _ := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw"})
@@ -397,7 +408,7 @@ func TestAdminService_GetByID_Success(t *testing.T) {
 
 func TestAdminService_GetByID_NotFound(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, err := svc.GetByID(ctx, 999)
@@ -409,7 +420,7 @@ func TestAdminService_GetByID_NotFound(t *testing.T) {
 func TestAdminService_GetByID_RepoErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.findByIDErr = errors.New("db error")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, err := svc.GetByID(ctx, 1)
@@ -420,7 +431,7 @@ func TestAdminService_GetByID_RepoErr(t *testing.T) {
 
 func TestAdminService_Update_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	created, _ := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw"})
@@ -443,7 +454,7 @@ func TestAdminService_Update_Success(t *testing.T) {
 
 func TestAdminService_Update_NotFound(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	rn := "x"
@@ -456,7 +467,7 @@ func TestAdminService_Update_NotFound(t *testing.T) {
 func TestAdminService_Update_FindByIDErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.findByIDErr = errors.New("find failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	rn := "x"
@@ -468,7 +479,7 @@ func TestAdminService_Update_FindByIDErr(t *testing.T) {
 
 func TestAdminService_Update_UsernameConflict(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, _ = svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw"})
@@ -482,7 +493,7 @@ func TestAdminService_Update_UsernameConflict(t *testing.T) {
 
 func TestAdminService_Update_UsernameSameNoConflict(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw"})
@@ -498,7 +509,7 @@ func TestAdminService_Update_UsernameSameNoConflict(t *testing.T) {
 
 func TestAdminService_Update_EmailConflict(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, _ = svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw", Email: "a@b.com"})
@@ -512,7 +523,7 @@ func TestAdminService_Update_EmailConflict(t *testing.T) {
 
 func TestAdminService_Update_RepoUpdateErr(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw"})
@@ -526,7 +537,7 @@ func TestAdminService_Update_RepoUpdateErr(t *testing.T) {
 
 func TestAdminService_Update_FindByUsernameErr(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw"})
@@ -540,7 +551,7 @@ func TestAdminService_Update_FindByUsernameErr(t *testing.T) {
 
 func TestAdminService_Update_FindByEmailErr(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw", Email: "a@b.com"})
@@ -554,7 +565,7 @@ func TestAdminService_Update_FindByEmailErr(t *testing.T) {
 
 func TestAdminService_Update_EmailSameNoConflict(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw", Email: "a@b.com"})
@@ -570,7 +581,7 @@ func TestAdminService_Update_EmailSameNoConflict(t *testing.T) {
 
 func TestAdminService_Update_OnlyPhone(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw"})
@@ -586,7 +597,7 @@ func TestAdminService_Update_OnlyPhone(t *testing.T) {
 
 func TestAdminService_Update_OnlyStatus(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw"})
@@ -602,7 +613,7 @@ func TestAdminService_Update_OnlyStatus(t *testing.T) {
 
 func TestAdminService_Delete_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw"})
@@ -617,7 +628,7 @@ func TestAdminService_Delete_Success(t *testing.T) {
 
 func TestAdminService_Delete_NotFound(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	err := svc.Delete(ctx, 999)
@@ -630,7 +641,7 @@ func TestAdminService_Delete_RepoErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	_ = repo.Create(context.Background(), &model.Admin{Username: "u", Password: "x"})
 	repo.deleteErr = errors.New("delete failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	got, _ := svc.GetByID(context.Background(), 1)
@@ -646,7 +657,7 @@ func TestAdminService_Delete_RepoErr(t *testing.T) {
 func TestAdminService_Delete_FindByIDErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.findByIDErr = errors.New("find failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	err := svc.Delete(ctx, 1)
@@ -657,7 +668,7 @@ func TestAdminService_Delete_FindByIDErr(t *testing.T) {
 
 func TestAdminService_ListPage_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, _ = svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw"})
@@ -682,7 +693,7 @@ func TestAdminService_ListPage_Success(t *testing.T) {
 
 func TestAdminService_ListPage_NormalizePage(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	res, err := svc.ListPage(ctx, 0, 10, nil)
@@ -696,7 +707,7 @@ func TestAdminService_ListPage_NormalizePage(t *testing.T) {
 
 func TestAdminService_ListPage_NormalizePageSize(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	res, err := svc.ListPage(ctx, 1, 0, nil)
@@ -710,7 +721,7 @@ func TestAdminService_ListPage_NormalizePageSize(t *testing.T) {
 
 func TestAdminService_ListPage_PageSizeOver100(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	res, err := svc.ListPage(ctx, 1, 200, nil)
@@ -727,7 +738,7 @@ func TestAdminService_ListPage_PagesCalc(t *testing.T) {
 	for i := 0; i < 25; i++ {
 		_ = repo.Create(context.Background(), &model.Admin{Username: fmt.Sprintf("u%d", i), Password: "x"})
 	}
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	res, err := svc.ListPage(ctx, 1, 10, nil)
@@ -742,7 +753,7 @@ func TestAdminService_ListPage_PagesCalc(t *testing.T) {
 func TestAdminService_ListPage_RepoErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.paginateErr = errors.New("paginate failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	_, err := svc.ListPage(ctx, 1, 10, nil)
@@ -753,7 +764,7 @@ func TestAdminService_ListPage_RepoErr(t *testing.T) {
 
 func TestAdminService_BatchDelete_Empty(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	if err := svc.BatchDelete(ctx, nil); err != nil {
@@ -766,7 +777,7 @@ func TestAdminService_BatchDelete_Empty(t *testing.T) {
 
 func TestAdminService_BatchDelete_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u1, _ := svc.Create(ctx, CreateAdminInput{Username: "u1", Password: "pw"})
@@ -782,7 +793,7 @@ func TestAdminService_BatchDelete_Success(t *testing.T) {
 
 func TestAdminService_BatchUpdateStatus_Empty(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	if err := svc.BatchUpdateStatus(ctx, nil, 1); err != nil {
@@ -792,7 +803,7 @@ func TestAdminService_BatchUpdateStatus_Empty(t *testing.T) {
 
 func TestAdminService_BatchUpdateStatus_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "pw"})
@@ -807,7 +818,7 @@ func TestAdminService_BatchUpdateStatus_Success(t *testing.T) {
 
 func TestAdminService_ResetPassword_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "old"})
@@ -825,7 +836,7 @@ func TestAdminService_ResetPassword_Success(t *testing.T) {
 
 func TestAdminService_ResetPassword_NotFound(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	err := svc.ResetPassword(ctx, 999, "new")
@@ -836,7 +847,7 @@ func TestAdminService_ResetPassword_NotFound(t *testing.T) {
 
 func TestAdminService_ResetPassword_RepoUpdateErr(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	u, _ := svc.Create(ctx, CreateAdminInput{Username: "u", Password: "old"})
@@ -850,7 +861,7 @@ func TestAdminService_ResetPassword_RepoUpdateErr(t *testing.T) {
 func TestAdminService_ResetPassword_FindByIDErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.findByIDErr = errors.New("find failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	err := svc.ResetPassword(ctx, 1, "newpass")
@@ -861,7 +872,7 @@ func TestAdminService_ResetPassword_FindByIDErr(t *testing.T) {
 
 func TestAdminService_UpdateLastLoginAt_Success(t *testing.T) {
 	repo := newMockAdminRepo()
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	if err := svc.UpdateLastLoginAt(ctx, 1); err != nil {
@@ -872,7 +883,7 @@ func TestAdminService_UpdateLastLoginAt_Success(t *testing.T) {
 func TestAdminService_UpdateLastLoginAt_RepoErr(t *testing.T) {
 	repo := newMockAdminRepo()
 	repo.updateLoginErr = errors.New("login update failed")
-	svc := NewAdminService(repo)
+	svc := newTestAdminService(repo)
 	ctx := context.Background()
 
 	err := svc.UpdateLastLoginAt(ctx, 1)
@@ -882,7 +893,7 @@ func TestAdminService_UpdateLastLoginAt_RepoErr(t *testing.T) {
 }
 
 func TestAdminService_GetPermissionsByRole_SuperAdmin(t *testing.T) {
-	svc := NewAdminService((*mockAdminRepo)(nil))
+	svc := newTestAdminService((*mockAdminRepo)(nil))
 	perms := svc.GetPermissionsByRole(1)
 	if len(perms) < 2 {
 		t.Errorf("len(perms) = %d, want >=2", len(perms))
@@ -900,7 +911,7 @@ func TestAdminService_GetPermissionsByRole_SuperAdmin(t *testing.T) {
 }
 
 func TestAdminService_GetPermissionsByRole_Regular(t *testing.T) {
-	svc := NewAdminService((*mockAdminRepo)(nil))
+	svc := newTestAdminService((*mockAdminRepo)(nil))
 	perms := svc.GetPermissionsByRole(2)
 	if len(perms) != 2 {
 		t.Errorf("len(perms) = %d, want 2", len(perms))

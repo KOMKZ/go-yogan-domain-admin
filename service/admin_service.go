@@ -6,15 +6,22 @@ import (
 	domainerrors "github.com/KOMKZ/go-yogan-domain-admin/errors"
 	"github.com/KOMKZ/go-yogan-domain-admin/model"
 	"github.com/KOMKZ/go-yogan-domain-admin/repository"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/KOMKZ/go-yogan-framework/logger"
+	"go.uber.org/zap"
 )
 
-type AdminService struct {
-	repo repository.AdminRepository
+type PasswordHasher interface {
+	HashPassword(password string) (string, error)
 }
 
-func NewAdminService(repo repository.AdminRepository) *AdminService {
-	return &AdminService{repo: repo}
+type AdminService struct {
+	repo   repository.AdminRepository
+	hasher PasswordHasher
+	logger *logger.CtxZapLogger
+}
+
+func NewAdminService(repo repository.AdminRepository, hasher PasswordHasher, log *logger.CtxZapLogger) *AdminService {
+	return &AdminService{repo: repo, hasher: hasher, logger: log}
 }
 
 type CreateAdminInput struct {
@@ -66,7 +73,7 @@ func (s *AdminService) Create(ctx context.Context, input CreateAdminInput) (*mod
 		}
 	}
 
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	hashed, err := s.hasher.HashPassword(input.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +89,7 @@ func (s *AdminService) Create(ctx context.Context, input CreateAdminInput) (*mod
 
 	admin := &model.Admin{
 		Username:        input.Username,
-		Password:        string(passwordHash),
+		Password:        hashed,
 		RealName:        input.RealName,
 		Email:           input.Email,
 		Phone:           input.Phone,
@@ -93,9 +100,11 @@ func (s *AdminService) Create(ctx context.Context, input CreateAdminInput) (*mod
 	}
 
 	if err := s.repo.Create(ctx, admin); err != nil {
+		s.logger.ErrorCtx(ctx, "create admin failed", zap.String("username", input.Username), zap.Error(err))
 		return nil, err
 	}
 
+	s.logger.InfoCtx(ctx, "admin created", zap.Uint("admin_id", admin.ID), zap.String("username", admin.Username))
 	return admin, nil
 }
 
@@ -156,9 +165,11 @@ func (s *AdminService) Update(ctx context.Context, id uint, input UpdateAdminInp
 	}
 
 	if err := s.repo.Update(ctx, admin); err != nil {
+		s.logger.ErrorCtx(ctx, "update admin failed", zap.Uint("admin_id", id), zap.Error(err))
 		return nil, err
 	}
 
+	s.logger.InfoCtx(ctx, "admin updated", zap.Uint("admin_id", id))
 	return admin, nil
 }
 
@@ -170,7 +181,12 @@ func (s *AdminService) Delete(ctx context.Context, id uint) error {
 	if admin == nil {
 		return domainerrors.ErrAdminNotFound
 	}
-	return s.repo.Delete(ctx, id)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		s.logger.ErrorCtx(ctx, "delete admin failed", zap.Uint("admin_id", id), zap.Error(err))
+		return err
+	}
+	s.logger.InfoCtx(ctx, "admin deleted", zap.Uint("admin_id", id))
+	return nil
 }
 
 func (s *AdminService) ListPage(ctx context.Context, page, pageSize int, filters map[string]interface{}) (*PageResult, error) {
@@ -204,7 +220,12 @@ func (s *AdminService) BatchDelete(ctx context.Context, ids []uint) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	return s.repo.BatchDelete(ctx, ids)
+	if err := s.repo.BatchDelete(ctx, ids); err != nil {
+		s.logger.ErrorCtx(ctx, "batch delete admins failed", zap.Any("ids", ids), zap.Error(err))
+		return err
+	}
+	s.logger.InfoCtx(ctx, "admins batch deleted", zap.Any("ids", ids))
+	return nil
 }
 
 func (s *AdminService) BatchUpdateStatus(ctx context.Context, ids []uint, status int8) error {
@@ -223,13 +244,18 @@ func (s *AdminService) ResetPassword(ctx context.Context, id uint, newPassword s
 		return domainerrors.ErrAdminNotFound
 	}
 
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	hashed, err := s.hasher.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
 
-	admin.Password = string(passwordHash)
-	return s.repo.Update(ctx, admin)
+	admin.Password = hashed
+	if err := s.repo.Update(ctx, admin); err != nil {
+		s.logger.ErrorCtx(ctx, "reset password failed", zap.Uint("admin_id", id), zap.Error(err))
+		return err
+	}
+	s.logger.InfoCtx(ctx, "admin password reset", zap.Uint("admin_id", id))
+	return nil
 }
 
 func (s *AdminService) UpdateLastLoginAt(ctx context.Context, id uint) error {
