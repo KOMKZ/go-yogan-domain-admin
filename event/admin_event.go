@@ -6,20 +6,22 @@ const (
 )
 
 type AdminLoginEvent struct {
-	name      string
-	AdminID   uint
-	Username  string
-	IP        string
-	UserAgent string
+	name       string
+	AdminID    uint
+	Username   string
+	AdminEmail string
+	IP         string
+	UserAgent  string
 }
 
-func NewAdminLoginEvent(adminID uint, username, ip, userAgent string) *AdminLoginEvent {
+func NewAdminLoginEvent(adminID uint, username, email, ip, userAgent string) *AdminLoginEvent {
 	return &AdminLoginEvent{
-		name:      EventAdminLogin,
-		AdminID:   adminID,
-		Username:  username,
-		IP:        ip,
-		UserAgent: userAgent,
+		name:       EventAdminLogin,
+		AdminID:    adminID,
+		Username:   username,
+		AdminEmail: email,
+		IP:         ip,
+		UserAgent:  userAgent,
 	}
 }
 

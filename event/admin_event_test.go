@@ -5,19 +5,22 @@ import (
 )
 
 func TestAdminLoginEvent_Name(t *testing.T) {
-	e := NewAdminLoginEvent(1, "admin", "127.0.0.1", "Mozilla")
+	e := NewAdminLoginEvent(1, "admin", "admin@test.com", "127.0.0.1", "Mozilla")
 	if got := e.Name(); got != EventAdminLogin {
 		t.Errorf("Name() = %q, want %q", got, EventAdminLogin)
 	}
 }
 
 func TestAdminLoginEvent_Fields(t *testing.T) {
-	e := NewAdminLoginEvent(42, "user1", "10.0.0.1", "Chrome")
+	e := NewAdminLoginEvent(42, "user1", "user1@test.com", "10.0.0.1", "Chrome")
 	if e.AdminID != 42 {
 		t.Errorf("AdminID = %d, want 42", e.AdminID)
 	}
 	if e.Username != "user1" {
 		t.Errorf("Username = %q, want user1", e.Username)
+	}
+	if e.AdminEmail != "user1@test.com" {
+		t.Errorf("AdminEmail = %q, want user1@test.com", e.AdminEmail)
 	}
 	if e.IP != "10.0.0.1" {
 		t.Errorf("IP = %q, want 10.0.0.1", e.IP)
