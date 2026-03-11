@@ -16,6 +16,7 @@ type AdminRepository interface {
 
 	FindByUsername(ctx context.Context, username string) (*model.Admin, error)
 	FindByEmail(ctx context.Context, email string) (*model.Admin, error)
+	FindByPhone(ctx context.Context, phone string) (*model.Admin, error)
 
 	BatchDelete(ctx context.Context, ids []uint) error
 	BatchUpdateStatus(ctx context.Context, ids []uint, status int8) error

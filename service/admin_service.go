@@ -119,6 +119,28 @@ func (s *AdminService) GetByID(ctx context.Context, id uint) (*model.Admin, erro
 	return admin, nil
 }
 
+func (s *AdminService) GetByEmail(ctx context.Context, email string) (*model.Admin, error) {
+	admin, err := s.repo.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	if admin == nil {
+		return nil, domainerrors.ErrAdminNotFound
+	}
+	return admin, nil
+}
+
+func (s *AdminService) GetByPhone(ctx context.Context, phone string) (*model.Admin, error) {
+	admin, err := s.repo.FindByPhone(ctx, phone)
+	if err != nil {
+		return nil, err
+	}
+	if admin == nil {
+		return nil, domainerrors.ErrAdminNotFound
+	}
+	return admin, nil
+}
+
 func (s *AdminService) Update(ctx context.Context, id uint, input UpdateAdminInput) (*model.Admin, error) {
 	admin, err := s.repo.FindByID(ctx, id)
 	if err != nil {

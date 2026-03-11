@@ -88,6 +88,18 @@ func (r *AdminMySQLRepository) FindByEmail(ctx context.Context, email string) (*
 	return &admin, nil
 }
 
+func (r *AdminMySQLRepository) FindByPhone(ctx context.Context, phone string) (*model.Admin, error) {
+	var admin model.Admin
+	err := r.db.WithContext(ctx).Where("phone = ?", phone).First(&admin).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &admin, nil
+}
+
 func (r *AdminMySQLRepository) BatchDelete(ctx context.Context, ids []uint) error {
 	return r.db.WithContext(ctx).Where("id IN ?", ids).Delete(&model.Admin{}).Error
 }
