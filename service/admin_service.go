@@ -43,6 +43,7 @@ type UpdateAdminInput struct {
 	Phone           *string
 	Avatar          *string
 	AvatarStorageID *string
+	Role            *int8
 	Status          *int8
 }
 
@@ -182,6 +183,9 @@ func (s *AdminService) Update(ctx context.Context, id uint, input UpdateAdminInp
 	if input.AvatarStorageID != nil {
 		admin.AvatarStorageID = *input.AvatarStorageID
 	}
+	if input.Role != nil {
+		admin.Role = *input.Role
+	}
 	if input.Status != nil {
 		admin.Status = *input.Status
 	}
@@ -290,16 +294,17 @@ func (s *AdminService) GetPermissionsByRole(role int8) []string {
 		return []string{
 			"*:*",
 			"dashboard:view",
-			"user:view", "user:write", "user:delete",
-			"admin:view", "admin:write", "admin:delete",
-			"role:view", "role:write", "role:delete",
-			"permission:view", "permission:write",
-			"system:view", "system:write",
-			"log:view",
+			"admin:read", "admin:write",
+			"login_log:read",
+			"profile:write",
+			"llm_provider:read", "llm_provider:write", "llm_provider:test", "llm_provider:set_default",
 		}
 	}
 	return []string{
 		"dashboard:view",
-		"user:view",
+		"admin:read",
+		"login_log:read",
+		"profile:write",
+		"llm_provider:read", "llm_provider:write", "llm_provider:test",
 	}
 }
